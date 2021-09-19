@@ -62,6 +62,13 @@ cdktf init --template="python-pip" --local
   }
 }
 
+# python env set up if required
+virtualenv -p python3.8 venv
+source venv/bin/activate
+
+# deactivate
+deactivate
+
 # get providers, modules and api tokens etc
 cdktf get
 
