@@ -1,0 +1,135 @@
+trigger: none
+
+parameters:
+  - name: WorkingDir
+    displayName: Working Directory
+    type: string
+    default: '$(Build.SourcesDirectory)/samples/terraform'
+  - name: azureSubscription
+    type: string
+    default: 'my-subscription'
+  - name: containerImage
+    type: string
+    default: "celz/docker-azure-alpine:293"
+
+variables:
+  imageName: 'docker-tooling-builder'
+
+stages:
+
+- stage: Plan
+  displayName: Planning
+
+  jobs:
+
+  - job:
+    pool:
+      vmImage: 'ubuntu-18.04' 
+    container: ${{ parameters.containerImage }}
+    steps: 
+    - task: AzureCLI@1
+      displayName: Terraform credentials
+      inputs:
+        azureSubscription: my-subscription
+        scriptLocation: inlineScript
+        inlineScript: |
+          set -eu  # fail on error
+          subscriptionId=$(az account show --query id -o tsv)
+          echo "##vso[task.setvariable variable=ARM_CLIENT_ID]$servicePrincipalId"
+          echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]$servicePrincipalKey"
+          echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]$subscriptionId"
+          echo "##vso[task.setvariable variable=ARM_TENANT_ID]$tenantId"
+        addSpnToEnvironment: true
+
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'my-subscription'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          ls -lar
+          export ARM_CLIENT_SECRET=$servicePrincipalKey
+          env
+          az account show
+          az version
+          pip list
+          poetry version
+          terraform version
+          terraform init 
+          terraform plan -input=false -out ${BUILD_BUILDNUMBER}.tfplan
+        addSpnToEnvironment: true
+        workingDirectory: '${{ parameters.WorkingDir }}'
+
+    - task: ArchiveFiles@2
+      displayName: 'Create Plan Artifact'
+      inputs:
+        rootFolderOrFile: '$(Build.SourcesDirectory)'
+        includeRootFolder: false
+        archiveType: 'tar'
+        tarCompression: 'gz'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).tgz'
+        replaceExistingArchive: true
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Plan Artifact'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+
+- stage: Apply
+  jobs:
+  - job:
+    pool:
+      vmImage: 'ubuntu-18.04' # set to windows-latest or another Windows vmImage for Windows builds
+    container: ${{ parameters.containerImage }}
+    workspace:
+      clean: all
+    steps:
+      - checkout: none
+
+      - task: AzureCLI@1
+        displayName: Terraform credentials
+        inputs:
+          azureSubscription: my-subscription
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -eu  # fail on error
+            subscriptionId=$(az account show --query id -o tsv)
+            echo "##vso[task.setvariable variable=ARM_CLIENT_ID]$servicePrincipalId"
+            echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]$servicePrincipalKey"
+            echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]$subscriptionId"
+            echo "##vso[task.setvariable variable=ARM_TENANT_ID]$tenantId"
+          addSpnToEnvironment: true
+        
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Plan Artifact'
+        inputs:
+          artifactName: 'drop'
+          
+      - task: ExtractFiles@1
+        displayName: 'Extract Plan Artifact'
+        inputs:
+          archiveFilePatterns: '$(System.ArtifactsDirectory)/drop/$(Build.BuildId).tgz'
+          destinationFolder: '$(System.DefaultWorkingDirectory)'
+          cleanDestinationFolder: false
+        
+      - task: AzureCLI@2
+        displayName: 'Terraform Apply'   
+        inputs:
+          azureSubscription: 'my-subscription'
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            ls -lar
+            export ARM_CLIENT_SECRET=$servicePrincipalKey
+            env
+            az account show
+            az version
+            pip list
+            poetry version
+            terraform version
+            terraform apply -input=false ${BUILD_BUILDNUMBER}.tfplan
+          addSpnToEnvironment: true
+          workingDirectory: '${{ parameters.WorkingDir }}'
+              

@@ -1,0 +1,49 @@
+# Docker
+# Build a Docker image
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+trigger: none
+
+resources:
+- repo: self
+
+parameters:
+  - name: dockerFilePath
+    displayName: Docker File Path
+    type: string
+    default: '$(Build.SourcesDirectory)/dockerfiles/docker-azure-agent'
+  - name: buildImageName
+    displayName: Build Image Name
+    default: 'docker-azure-alpine'
+  - name: buildTags
+    displayName: Build Tags
+    default: '$(Build.BuildId)'
+  - name: dockerRepository
+    displayName: Docker Repository
+    default: 'dockerRepo'
+  - name: dockerRegistryServiceConnection
+    displayName: Docker Registory Service Connection 
+    default: 'dockerRegistryServiceConnection'
+
+variables:
+  tag: ${{ parameters.buildTags }}
+  buildImage: ${{ parameters.buildImageName }}
+
+stages:
+- stage: Build
+  displayName: Build image
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-18.04
+    steps:
+    - task: Docker@2
+      displayName: Build an image
+      inputs:
+        command: buildAndPush
+        dockerfile: ${{ parameters.dockerFilePath }}/Dockerfile
+        tags: |
+           $(tag)
+        repository: ${{ parameters.dockerRepository }}/$(buildImage)
+        containerRegistry: ${{ parameters.dockerRegistryServiceConnection }}

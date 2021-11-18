@@ -1,0 +1,30 @@
+
+[tool.poetry]
+name = "build_agent"
+version = "0.1.0"
+description = "Python Tasks for the project"
+authors = ["Celena"]
+
+[[tool.poetry.source]]
+name = "pypi_with_cert"
+url = "https://pypi.org/simple"
+default = true
+
+[tool.poetry.dependencies]
+adal = "^1.2.7"
+aiohttp = "^3.8"
+azure-cli = "2.29.2"
+azure-mgmt-datafactory = "2.0.0"
+azure-mgmt-databricks = "1.0.0"
+python = ">=3.8, <4"
+requests = "*"
+urllib3 = "*"
+six = "*"
+
+[tool.poetry.dev-dependencies]
+keyring = "^21.5.0"
+artifacts-keyring = "^0.2.10"
+
+[build-system]
+requires = ["poetry=1.1.9"]
+build-backend = "poetry.masonry.api"
