@@ -12,9 +12,6 @@ parameters:
     type: string
     default: "celz/docker-azure-alpine:293"
 
-variables:
-  imageName: 'docker-tooling-builder'
-
 stages:
 
 - stage: Plan
