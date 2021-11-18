@@ -13,13 +13,13 @@ ENV PYTHONUNBUFFERED=1 \
     SYSTEM_USR_PATH="/usr/local/bin" \
     AZ_PATH="/usr/bin"
 
-ENV USER=agent \
-    UID=12345 \
-    GID=12345 
+ENV USER=vsts \
+    UID=1001 \
+    GID=1001 
 
 ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$TERRAFORM_PATH:$PATH"
 
-RUN addgroup -S agent -g "$GID"\
+RUN addgroup -S "$USER" -g "$GID"\
   && adduser \
     --disabled-password \
     --gecos "" \
@@ -71,7 +71,7 @@ COPY --from=agent-builder $SYSTEM_USR_PATH/terraform $SYSTEM_USR_PATH/terraform
 
 LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
 
-USER agent
-WORKDIR /agent
+USER vsts
+WORKDIR /vsts
 
 CMD [ "node" ]
