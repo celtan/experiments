@@ -49,7 +49,7 @@ RUN curl -fL https://getcli.jfrog.io|sh \
     && chmod +x jfrog \
     && mv jfrog /usr/bin/jfrog
 
-
+# Install Poetry
 RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | python -
 
 FROM builder AS agent
